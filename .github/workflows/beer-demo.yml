@@ -1,0 +1,94 @@
+#################################
+# Trigger = github action
+# Pipeline executeion happens on the github side
+# backend = terraform cloud (TF Cloud is state file only - no config or additional needed)
+# TF Cloud Workspace - single workspace per state file
+#################################
+name: 'Beer Demo Deployment'
+
+# Deployment pipeline trigger config
+on:
+  push:
+    paths:
+    - 'terraform-applications/brewery/**'      #This tells the deployment pipeline to run when something changes in this directory.  This means you can partition your repo into sub folders and have separate pipelines.  This is helpful to limit the scope of each deployment
+    branches:        #This tells the deployment pipeline to run when code is merged to this list of deployment branches 
+    - main
+    - dev
+  #pull_request:     #not currently using this, but can set up deployments to run on a pull request
+
+# Sample yaml variables that can be used in the job pipelines below
+# add as many of these as needed
+# reference variables below with syntax ${{ env.sub_directory }}
+env:
+  sub_directory: terraform-applications/brewery 
+
+
+jobs:
+  ##################################################################################################
+  # Job 1 - Get Environment
+  #
+  # Gets and parse the branch identifier this is run from to store env variable
+  # This is used to configure the terraform backend
+  ##################################################################################################
+  set_env:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get environment name
+        id: get_env_name
+        run: |
+          echo "Running on branch ${{ github.ref }}"
+          echo "::set-output name=env_name::${GITHUB_REF#refs/heads/}"
+
+    outputs:
+      env_name: ${{ steps.get_env_name.outputs.env_name }} # job output ... consumed by next job
+
+  ##################################################################################################
+  # Job 2 - Deployment Pipeline
+  #
+  # This has a dependency (a "needs") to the first job in order to set the orchestration between the 2 jobs
+  # Main terraform deployment pipeline
+  ##################################################################################################
+  terraform_deployment:
+    needs: [set_env] #orchestrates set_env job to run before terraform_deployment
+    name: 'terraform-deployment'
+    runs-on: ubuntu-latest
+    environment: ${{ needs.set_env.outputs.env_name }} # uses the environment name from job one to set the github environment
+                                                       # the github environment is what stores the "environment secrets" for the GCP cloud connection details for the GCP project mapped to the particular github environment/branch
+
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
+        working-directory: ${{ env.sub_directory }} # set the base folder to pull code from
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v2
+    
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+      with:
+        cli_config_credentials_token: ${{ secrets.TFCLOUD_API_TOKEN }} # repo level secret
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    # Terraform backend config details stored in environment backend config files
+    - name: Terraform Init
+      run: terraform init -backend-config=env-config/${{ needs.set_env.outputs.env_name }}-backend.conf
+
+    # Checks that all Terraform configuration files adhere to a canonical format
+    #- name: Terraform Format
+    #  #working-directory: ./terraform
+    #  run: terraform fmt -check
+
+    # Generates an execution plan for Terraform
+    #- name: Terraform Plan
+    #  run: terraform plan -var-file="env-config/${{ needs.set_env.outputs.env_name }}.tfvars"
+
+    # Terraform Apply (Auto Apply)
+    # Passes in terraform variables in an environment .tfvars file
+    - name: Terraform Apply
+      run: terraform apply -auto-approve -var-file="env-config/${{ needs.set_env.outputs.env_name }}.tfvars"
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }} # environment level secret per branch

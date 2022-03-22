@@ -1,0 +1,19 @@
+[
+    {"name":"obdb_id","type":"STRING","mode":"REQUIRED","description":""},
+    {"name":"name","type":"STRING","mode":"REQUIRED","description":""},
+    {"name":"brewery_type","type":"STRING","mode":"REQUIRED","description":""},
+    {"name":"street","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"address_2","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"address_3","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"city","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"state","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"county_province","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"postal_code","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"website_url","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"phone","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"country","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"longitude","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"latitude","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"tags","type":"STRING","mode":"NULLABLE","description":""},
+    {"name":"load_datetime","type":"DATETIME","mode":"REQUIRED","description":""}
+]
