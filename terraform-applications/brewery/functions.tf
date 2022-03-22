@@ -1,5 +1,5 @@
 module "function_beer_demo_pipelines" {
-  source = "../modules/function"
+  source = "../../terraform-modules/gcp-function"
 
   gcp_project_id = var.gcp_project_id
   function_name = "beer_demo_data_pipeline"
